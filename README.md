@@ -8,19 +8,15 @@ Spring Boot 3.5 / Java 21 / Spring Data JPA / SQL Server; React / Vite / React-B
 
 Database và file `backend/application-local.properties` đã được cấu hình riêng tại máy làm bài. File này chứa thông tin kết nối local và không đưa lên Git hoặc ZIP.
 
-1. Mở `backend/pom.xml` bằng IntelliJ, chọn JDK 21 và Reload Maven.
-2. Chạy class `LuanLHCE191099_Application`. Backend dùng port **8083**.
-3. Mở terminal thứ hai trong `frontend`, chạy `npm ci` khi chưa có node_modules rồi `npm run dev`.
-4. Mở **http://127.0.0.1:5176**. Frontend proxy `/api` về backend.
+1. Mở `backend/pom.xml` bằng IntelliJ, chọn JDK 21 và Reload Maven. Chạy class `LuanLHCE191099_Application` và đợi backend khởi động ở cổng **8083**.
+2. Mở terminal trong `frontend`. Chạy `npm ci` khi chưa cài thư viện, sau đó chạy `npm run dev`.
+3. Mở **http://127.0.0.1:5176**. Frontend chuyển các request `/api` về backend.
 
-Hoặc chạy hai terminal từ thư mục gốc project:
-
-```powershell
-.\LuanLHCE191099_run-backend.ps1
-```
+Nếu chạy backend bằng PowerShell, mở terminal ở thư mục gốc project và dùng Maven Wrapper:
 
 ```powershell
-.\LuanLHCE191099_run-frontend.ps1
+cd backend
+.\mvnw.cmd spring-boot:run
 ```
 
 Nếu đã có server đang chạy trên cổng trên thì dùng server đó hoặc dừng đúng process của project trước khi mở bản thứ hai.
