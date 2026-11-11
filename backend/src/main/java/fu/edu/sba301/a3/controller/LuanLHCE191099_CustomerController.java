@@ -1,49 +1,57 @@
 package fu.edu.sba301.a3.controller;
 
-import static fu.edu.sba301.a3.dto.LuanLHCE191099_Dtos.*;
-
+import fu.edu.sba301.a3.dto.LuanLHCE191099_ApiResponse;
+import fu.edu.sba301.a3.dto.LuanLHCE191099_CustomerRequest;
+import fu.edu.sba301.a3.entity.LuanLHCE191099_Customer;
 import fu.edu.sba301.a3.service.LuanLHCE191099_CustomerService;
 import jakarta.validation.Valid;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/customers")
 @PreAuthorize("hasRole('STAFF')")
 public class LuanLHCE191099_CustomerController {
 
-  private final LuanLHCE191099_CustomerService service;
+    private final LuanLHCE191099_CustomerService customerService;
 
-  public LuanLHCE191099_CustomerController(LuanLHCE191099_CustomerService service) {
-    this.service = service;
-  }
+    @GetMapping
+    public ResponseEntity<LuanLHCE191099_ApiResponse<List<LuanLHCE191099_Customer>>> getCustomers(
+        @RequestParam(name = "q", defaultValue = "") String searchText
+    ) {
+        return ResponseEntity.ok(LuanLHCE191099_ApiResponse.ok(customerService.getCustomers(searchText)));
+    }
 
-  @GetMapping
-  public List<CustomerResponse> list(@RequestParam(defaultValue = "") String q) {
-    return service.list(q);
-  }
+    @GetMapping("/{id}")
+    public ResponseEntity<LuanLHCE191099_ApiResponse<LuanLHCE191099_Customer>> getCustomerById(@PathVariable Long id) {
+        return ResponseEntity.ok(LuanLHCE191099_ApiResponse.ok(customerService.getCustomerById(id)));
+    }
 
-  @GetMapping("/{id}")
-  public CustomerResponse get(@PathVariable Long id) {
-    return service.get(id);
-  }
+    @PostMapping
+    public ResponseEntity<LuanLHCE191099_ApiResponse<LuanLHCE191099_Customer>> createCustomer(
+        @Valid @RequestBody LuanLHCE191099_CustomerRequest request
+    ) {
+        LuanLHCE191099_Customer customer = customerService.createCustomer(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(LuanLHCE191099_ApiResponse.ok("Customer created successfully.", customer));
+    }
 
-  @PostMapping
-  @ResponseStatus(HttpStatus.CREATED)
-  public CustomerResponse create(@Valid @RequestBody CustomerInput input) {
-    return service.create(input);
-  }
+    @PutMapping("/{id}")
+    public ResponseEntity<LuanLHCE191099_ApiResponse<LuanLHCE191099_Customer>> updateCustomer(
+        @PathVariable Long id,
+        @Valid @RequestBody LuanLHCE191099_CustomerRequest request
+    ) {
+        LuanLHCE191099_Customer customer = customerService.updateCustomer(id, request);
+        return ResponseEntity.ok(LuanLHCE191099_ApiResponse.ok("Customer updated successfully.", customer));
+    }
 
-  @PutMapping("/{id}")
-  public CustomerResponse update(@PathVariable Long id, @Valid @RequestBody CustomerInput input) {
-    return service.update(id, input);
-  }
-
-  @DeleteMapping("/{id}")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void delete(@PathVariable Long id) {
-    service.delete(id);
-  }
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCustomer(@PathVariable Long id) {
+        customerService.deleteCustomer(id);
+    }
 }

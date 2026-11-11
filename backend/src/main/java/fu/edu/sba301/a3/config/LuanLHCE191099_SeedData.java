@@ -15,68 +15,78 @@ import org.springframework.transaction.annotation.Transactional;
 @ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true", matchIfMissing = true)
 public class LuanLHCE191099_SeedData implements ApplicationRunner {
 
-  private final LuanLHCE191099_CustomerRepository customers;
-  private final LuanLHCE191099_RoomRepository rooms;
-  private final LuanLHCE191099_RoomTypeRepository types;
-  private final PasswordEncoder encoder;
+    private final LuanLHCE191099_CustomerRepository customers;
+    private final LuanLHCE191099_RoomRepository rooms;
+    private final LuanLHCE191099_RoomTypeRepository types;
+    private final PasswordEncoder encoder;
 
-  public LuanLHCE191099_SeedData(
-    LuanLHCE191099_CustomerRepository customers,
-    LuanLHCE191099_RoomRepository rooms,
-    LuanLHCE191099_RoomTypeRepository types,
-    PasswordEncoder encoder
-  ) {
-    this.customers = customers;
-    this.rooms = rooms;
-    this.types = types;
-    this.encoder = encoder;
-  }
-
-  @Override
-  @Transactional
-  public void run(ApplicationArguments args) {
-    if (types.count() == 0) {
-      LuanLHCE191099_RoomType standard = new LuanLHCE191099_RoomType();
-      standard.setName("Standard");
-      standard.setDescription("A comfortable room for a short stay");
-      standard.setNote("Wi-Fi included");
-      types.save(standard);
-      LuanLHCE191099_RoomType deluxe = new LuanLHCE191099_RoomType();
-      deluxe.setName("Deluxe");
-      deluxe.setDescription("More space for a relaxed stay");
-      deluxe.setNote("City view");
-      types.save(deluxe);
-      addRoom("101", standard, 2, "550000.00", "A quiet standard room with a double bed.");
-      addRoom("102", standard, 2, "550000.00", "Twin beds, desk and private bathroom.");
-      addRoom("201", deluxe, 4, "950000.00", "A spacious deluxe room for families.");
-      addRoom("202", deluxe, 3, "850000.00", "Deluxe room with natural light and a seating area.");
+    public LuanLHCE191099_SeedData(
+        LuanLHCE191099_CustomerRepository customers,
+        LuanLHCE191099_RoomRepository rooms,
+        LuanLHCE191099_RoomTypeRepository types,
+        PasswordEncoder encoder
+    ) {
+        this.customers = customers;
+        this.rooms = rooms;
+        this.types = types;
+        this.encoder = encoder;
     }
-    if (customers.count() == 0) {
-      LuanLHCE191099_Customer c = new LuanLHCE191099_Customer();
-      c.setFullName("Le Hoang Luan");
-      c.setEmail("customer@hotel.local");
-      c.setTelephone("0901234567");
-      c.setBirthday(LocalDate.of(2004, 1, 1));
-      c.setStatus(1);
-      c.setPassword(encoder.encode("Customer@123"));
-      customers.save(c);
-    }
-  }
 
-  private void addRoom(
-    String number,
-    LuanLHCE191099_RoomType type,
-    int capacity,
-    String price,
-    String description
-  ) {
-    LuanLHCE191099_Room r = new LuanLHCE191099_Room();
-    r.setNumber(number);
-    r.setType(type);
-    r.setCapacity(capacity);
-    r.setPrice(new BigDecimal(price));
-    r.setDescription(description);
-    r.setStatus(1);
-    rooms.save(r);
-  }
+    @Override
+    @Transactional
+    public void run(ApplicationArguments args) {
+        if (types.count() == 0) {
+            LuanLHCE191099_RoomType standard = LuanLHCE191099_RoomType.builder()
+                .name("Standard")
+                .description("A comfortable room for a short stay")
+                .note("Wi-Fi included")
+                .build();
+            types.save(standard);
+            LuanLHCE191099_RoomType deluxe = LuanLHCE191099_RoomType.builder()
+                .name("Deluxe")
+                .description("More space for a relaxed stay")
+                .note("City view")
+                .build();
+            types.save(deluxe);
+            addRoom("101", standard, 2, "550000.00", "A quiet standard room with a double bed.");
+            addRoom("102", standard, 2, "550000.00", "Twin beds, desk and private bathroom.");
+            addRoom("201", deluxe, 4, "950000.00", "A spacious deluxe room for families.");
+            addRoom(
+                "202",
+                deluxe,
+                3,
+                "850000.00",
+                "Deluxe room with natural light and a seating area."
+            );
+        }
+        if (customers.count() == 0) {
+            LuanLHCE191099_Customer customer = LuanLHCE191099_Customer.builder()
+                .fullName("Le Hoang Luan")
+                .email("customer@hotel.local")
+                .telephone("0901234567")
+                .birthday(LocalDate.of(2004, 1, 1))
+                .status(1)
+                .password(encoder.encode("Customer@123"))
+                .build();
+            customers.save(customer);
+        }
+    }
+
+    private void addRoom(
+        String number,
+        LuanLHCE191099_RoomType type,
+        int capacity,
+        String price,
+        String description
+    ) {
+        LuanLHCE191099_Room room = LuanLHCE191099_Room.builder()
+            .number(number)
+            .type(type)
+            .capacity(capacity)
+            .price(new BigDecimal(price))
+            .description(description)
+            .status(1)
+            .build();
+        rooms.save(room);
+    }
 }

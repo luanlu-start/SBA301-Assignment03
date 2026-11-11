@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Alert, Button, Form, Spinner } from 'react-bootstrap';
-import api, { errorText } from './LuanLHCE191099_api.js';
-import { useAuth } from './LuanLHCE191099_Auth.jsx';
-import FormFields from './LuanLHCE191099_FormFields.jsx';
-export default function ProfilePage({ endpoint, fields }) {
+import { errorText } from '../api/LuanLHCE191099_axiosClient.js';
+import { profileApi } from '../api/LuanLHCE191099_profileApi.js';
+import { useAuth } from '../context/LuanLHCE191099_AuthContext.jsx';
+import FormFields from '../components/Common/LuanLHCE191099_FormFields.jsx';
+export default function ProfilePage({ fields }) {
   const { refresh } = useAuth();
   const [form, setForm] = useState(null);
   const [error, setError] = useState('');
@@ -11,8 +12,8 @@ export default function ProfilePage({ endpoint, fields }) {
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true;
-    api
-      .get(endpoint)
+    profileApi
+      .get()
       .then(({ data }) => {
         if (active)
           setForm(
@@ -30,14 +31,14 @@ export default function ProfilePage({ endpoint, fields }) {
     return () => {
       active = false;
     };
-  }, [endpoint, fields]);
+  }, [fields]);
   async function save(event) {
     event.preventDefault();
     setBusy(true);
     setSaved(false);
     setError('');
     try {
-      await api.put(endpoint, form);
+      await profileApi.update(form);
       await refresh();
       setForm({ ...form, password: '' });
       setSaved(true);

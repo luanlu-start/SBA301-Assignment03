@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Alert, Badge, Button, Col, Form, Modal, Row, Spinner, Table } from 'react-bootstrap';
-import api, { errorText, money } from './LuanLHCE191099_api.js';
-import useApiList from './LuanLHCE191099_useApiList.js';
+import { errorText } from '../api/LuanLHCE191099_axiosClient.js';
+import { bookingApi } from '../api/LuanLHCE191099_bookingApi.js';
+import { customerApi } from '../api/LuanLHCE191099_customerApi.js';
+import { roomApi } from '../api/LuanLHCE191099_roomApi.js';
+import useApiList from '../hooks/LuanLHCE191099_useApiList.js';
+import { money } from '../utils/LuanLHCE191099_money.js';
 export const bookingColumns = [
   { key: 'id', label: 'Booking' },
   { key: 'customerName', label: 'Customer' },
@@ -33,9 +37,9 @@ export const bookingColumns = [
 ];
 export default function BookingPage() {
   const [search, setSearch] = useState('');
-  const bookings = useApiList(`/bookings?q=${encodeURIComponent(search)}`);
-  const customers = useApiList('/customers');
-  const rooms = useApiList('/rooms');
+  const bookings = useApiList(bookingApi.getAll, search);
+  const customers = useApiList(customerApi.getAll);
+  const rooms = useApiList(roomApi.getAll);
   const [form, setForm] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -71,8 +75,8 @@ export default function BookingPage() {
     setBusy(true);
     try {
       const body = { ...form, customerId: Number(form.customerId), status: Number(form.status) };
-      if (editingId === null) await api.post('/bookings', body);
-      else await api.put(`/bookings/${editingId}`, body);
+      if (editingId === null) await bookingApi.create(body);
+      else await bookingApi.update(editingId, body);
       setForm(null);
       setNotice(editingId === null ? 'Reservation created.' : 'Reservation updated.');
       bookings.reload();
@@ -86,7 +90,7 @@ export default function BookingPage() {
     setBusy(true);
     setError('');
     try {
-      await api.delete(`/bookings/${deleting.id}`);
+      await bookingApi.delete(deleting.id);
       setDeleting(null);
       setNotice('Reservation deleted.');
       bookings.reload();

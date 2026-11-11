@@ -5,7 +5,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LuanLHCE191099_CustomerRepository
-  extends JpaRepository<LuanLHCE191099_Customer, Long>
+    extends JpaRepository<LuanLHCE191099_Customer, Long>
 {
-  Optional<LuanLHCE191099_Customer> findByEmailIgnoreCase(String email);
+    Optional<LuanLHCE191099_Customer> findByEmailIgnoreCase(String email);
 }

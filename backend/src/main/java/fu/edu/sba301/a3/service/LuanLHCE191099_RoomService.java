@@ -1,151 +1,163 @@
 package fu.edu.sba301.a3.service;
 
-import static fu.edu.sba301.a3.dto.LuanLHCE191099_Dtos.*;
-
+import fu.edu.sba301.a3.dto.LuanLHCE191099_RoomDeleteResponse;
+import fu.edu.sba301.a3.dto.LuanLHCE191099_RoomRequest;
+import fu.edu.sba301.a3.dto.LuanLHCE191099_RoomTypeResponse;
 import fu.edu.sba301.a3.entity.LuanLHCE191099_Room;
+import fu.edu.sba301.a3.entity.LuanLHCE191099_RoomType;
 import fu.edu.sba301.a3.exception.LuanLHCE191099_ApiException;
-import fu.edu.sba301.a3.repository.*;
+import fu.edu.sba301.a3.repository.LuanLHCE191099_BookingDetailRepository;
+import fu.edu.sba301.a3.repository.LuanLHCE191099_RoomRepository;
+import fu.edu.sba301.a3.repository.LuanLHCE191099_RoomTypeRepository;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class LuanLHCE191099_RoomService {
 
-  private final LuanLHCE191099_RoomRepository rooms;
-  private final LuanLHCE191099_RoomTypeRepository types;
-  private final LuanLHCE191099_BookingDetailRepository details;
+    private final LuanLHCE191099_RoomRepository roomRepository;
+    private final LuanLHCE191099_RoomTypeRepository roomTypeRepository;
+    private final LuanLHCE191099_BookingDetailRepository bookingDetailRepository;
 
-  public LuanLHCE191099_RoomService(
-    LuanLHCE191099_RoomRepository rooms,
-    LuanLHCE191099_RoomTypeRepository types,
-    LuanLHCE191099_BookingDetailRepository details
-  ) {
-    this.rooms = rooms;
-    this.types = types;
-    this.details = details;
-  }
+    public List<LuanLHCE191099_Room> getRooms(
+        String searchText,
+        boolean activeOnly,
+        LocalDate startDate,
+        LocalDate endDate
+    ) {
+        boolean hasStartDate = startDate != null;
+        boolean hasEndDate = endDate != null;
+        if (hasStartDate != hasEndDate || (hasStartDate && !endDate.isAfter(startDate))) {
+            throw new LuanLHCE191099_ApiException(400, "Provide a valid start and end date together.");
+        }
 
-  public List<RoomResponse> list(
-    String q,
-    boolean activeOnly,
-    LocalDate startDate,
-    LocalDate endDate
-  ) {
-    if (
-      (startDate == null) != (endDate == null) || (startDate != null && !endDate.isAfter(startDate))
-    ) throw new LuanLHCE191099_ApiException(400, "Provide a valid start and end date together.");
-    String k = q.trim().toLowerCase(Locale.ROOT);
-    return rooms
-      .findAll(Sort.by("number"))
-      .stream()
-      .filter(r -> !activeOnly || r.getStatus() == 1)
-      .filter(r ->
-        (r.getNumber() + " " + r.getType().getName() + " " + r.getDescription())
-          .toLowerCase(Locale.ROOT)
-          .contains(k)
-      )
-      .filter(
-        r -> startDate == null || details.countOverlap(r.getId(), startDate, endDate, null) == 0
-      )
-      .map(LuanLHCE191099_RoomService::view)
-      .toList();
-  }
+        String keyword = searchText.trim().toLowerCase(Locale.ROOT);
+        List<LuanLHCE191099_Room> rooms = roomRepository.findAll(Sort.by("number"));
+        List<LuanLHCE191099_Room> matchingRooms = new ArrayList<>();
 
-  public RoomResponse get(Long id, boolean publicOnly) {
-    LuanLHCE191099_Room r = required(id);
-    if (publicOnly && r.getStatus() != 1) throw new LuanLHCE191099_ApiException(
-      404,
-      "Room not found."
-    );
-    return view(r);
-  }
+        for (LuanLHCE191099_Room room : rooms) {
+            if (activeOnly && room.getStatus() != 1) {
+                continue;
+            }
 
-  public List<RoomTypeResponse> types() {
-    return types
-      .findAll(Sort.by("id"))
-      .stream()
-      .map(t -> new RoomTypeResponse(t.getId(), t.getName(), t.getDescription(), t.getNote()))
-      .toList();
-  }
+            String roomText = room.getNumber() + " " + room.getType().getName() + " " + room.getDescription();
+            if (!roomText.toLowerCase(Locale.ROOT).contains(keyword)) {
+                continue;
+            }
 
-  @Transactional
-  public RoomResponse create(RoomInput input) {
-    LuanLHCE191099_Room r = new LuanLHCE191099_Room();
-    apply(r, input);
-    return view(rooms.saveAndFlush(r));
-  }
+            if (hasStartDate && bookingDetailRepository.hasOverlap(room.getId(), startDate, endDate, null)) {
+                continue;
+            }
 
-  @Transactional
-  public RoomResponse update(Long id, RoomInput input) {
-    LuanLHCE191099_Room r = rooms
-      .findLockedById(id)
-      .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Room not found."));
-    apply(r, input);
-    return view(rooms.saveAndFlush(r));
-  }
-
-  @Transactional
-  public Map<String, Object> delete(Long id) {
-    LuanLHCE191099_Room r = rooms
-      .findLockedById(id)
-      .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Room not found."));
-    if (details.existsByRoom_Id(id)) {
-      r.setStatus(0);
-      rooms.saveAndFlush(r);
-      return Map.of(
-        "message",
-        "Room has booking history and was set inactive.",
-        "deactivated",
-        true
-      );
+            matchingRooms.add(room);
+        }
+        return matchingRooms;
     }
-    rooms.delete(r);
-    rooms.flush();
-    return Map.of("message", "Room deleted.", "deactivated", false);
-  }
 
-  private void apply(LuanLHCE191099_Room r, RoomInput input) {
-    String number = input.number().trim();
-    rooms
-      .findByNumber(number)
-      .filter(other -> !other.getId().equals(r.getId()))
-      .ifPresent(other -> {
-        throw new LuanLHCE191099_ApiException(409, "Room number already exists.");
-      });
-    r.setNumber(number);
-    r.setDescription(input.description());
-    r.setCapacity(input.capacity());
-    r.setStatus(input.status());
-    r.setPrice(input.price());
-    r.setType(
-      types
-        .findById(input.roomTypeId())
-        .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Room type not found."))
-    );
-  }
+    public LuanLHCE191099_Room getRoomById(Long id, boolean publicOnly) {
+        LuanLHCE191099_Room room = roomRepository.findById(id)
+            .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Room not found."));
+        if (publicOnly && room.getStatus() != 1) {
+            throw new LuanLHCE191099_ApiException(404, "Room not found.");
+        }
+        return room;
+    }
 
-  private LuanLHCE191099_Room required(Long id) {
-    return rooms
-      .findById(id)
-      .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Room not found."));
-  }
+    public List<LuanLHCE191099_RoomTypeResponse> getRoomTypes() {
+        List<LuanLHCE191099_RoomType> roomTypes = roomTypeRepository.findAll(Sort.by("id"));
+        List<LuanLHCE191099_RoomTypeResponse> responses = new ArrayList<>();
 
-  public static RoomResponse view(LuanLHCE191099_Room r) {
-    return new RoomResponse(
-      r.getId(),
-      r.getNumber(),
-      r.getDescription(),
-      r.getCapacity(),
-      r.getType().getId(),
-      r.getType().getName(),
-      r.getStatus(),
-      r.getPrice()
-    );
-  }
+        for (LuanLHCE191099_RoomType roomType : roomTypes) {
+            LuanLHCE191099_RoomTypeResponse response = LuanLHCE191099_RoomTypeResponse.builder()
+                .id(roomType.getId())
+                .name(roomType.getName())
+                .description(roomType.getDescription())
+                .note(roomType.getNote())
+                .build();
+            responses.add(response);
+        }
+        return responses;
+    }
+
+    @Transactional
+    public LuanLHCE191099_Room createRoom(LuanLHCE191099_RoomRequest request) {
+        String number = request.getNumber().trim();
+        validateRoomNumber(number, null);
+
+        LuanLHCE191099_Room room = LuanLHCE191099_Room.builder()
+            .number(number)
+            .description(request.getDescription())
+            .capacity(request.getCapacity())
+            .status(request.getStatus())
+            .price(request.getPrice())
+            .type(findRoomTypeById(request.getRoomTypeId()))
+            .build();
+
+        return roomRepository.save(room);
+    }
+
+    @Transactional
+    public LuanLHCE191099_Room updateRoom(Long id, LuanLHCE191099_RoomRequest request) {
+        LuanLHCE191099_Room room = findRoomAndLock(id);
+        String number = request.getNumber().trim();
+        validateRoomNumber(number, id);
+        LuanLHCE191099_RoomType roomType = findRoomTypeById(request.getRoomTypeId());
+
+        room.setNumber(number);
+        room.setDescription(request.getDescription());
+        room.setCapacity(request.getCapacity());
+        room.setStatus(request.getStatus());
+        room.setPrice(request.getPrice());
+        room.setType(roomType);
+
+        return roomRepository.save(room);
+    }
+
+    @Transactional
+    public LuanLHCE191099_RoomDeleteResponse deleteRoom(Long id) {
+        LuanLHCE191099_Room room = findRoomAndLock(id);
+        boolean hasBookingHistory = bookingDetailRepository.existsByRoom_Id(id);
+        String message;
+
+        if (hasBookingHistory) {
+            room.setStatus(0);
+            roomRepository.save(room);
+            message = "Room has booking history and was set inactive.";
+        } else {
+            roomRepository.delete(room);
+            message = "Room deleted.";
+        }
+
+        return LuanLHCE191099_RoomDeleteResponse.builder()
+            .message(message)
+            .deactivated(hasBookingHistory)
+            .build();
+    }
+
+    private void validateRoomNumber(String number, Long roomId) {
+        boolean numberUsedByAnotherRoom = roomRepository.findByNumber(number)
+            .filter(other -> !other.getId().equals(roomId))
+            .isPresent();
+        if (numberUsedByAnotherRoom) {
+            throw new LuanLHCE191099_ApiException(409, "Room number already exists.");
+        }
+    }
+
+    private LuanLHCE191099_RoomType findRoomTypeById(Long roomTypeId) {
+        return roomTypeRepository.findById(roomTypeId)
+            .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Room type not found."));
+    }
+
+    private LuanLHCE191099_Room findRoomAndLock(Long id) {
+        return roomRepository.findLockedById(id)
+            .orElseThrow(() -> new LuanLHCE191099_ApiException(404, "Room not found."));
+    }
 }

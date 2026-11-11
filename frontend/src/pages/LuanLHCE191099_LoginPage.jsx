@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, Form } from 'react-bootstrap';
-import api, { errorText } from './LuanLHCE191099_api.js';
-import { useAuth } from './LuanLHCE191099_Auth.jsx';
-import FormFields from './LuanLHCE191099_FormFields.jsx';
+import { authApi } from '../api/LuanLHCE191099_authApi.js';
+import { errorText } from '../api/LuanLHCE191099_axiosClient.js';
+import { useAuth } from '../context/LuanLHCE191099_AuthContext.jsx';
+import FormFields from '../components/Common/LuanLHCE191099_FormFields.jsx';
+
+const demoAccounts = [
+  { role: 'Staff', email: 'staff@hotel.local', password: 'Staff@123' },
+  { role: 'Customer', email: 'customer@hotel.local', password: 'Customer@123' },
+];
+
 export default function LoginPage({ registerFields = [], destinations }) {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -17,14 +24,19 @@ export default function LoginPage({ registerFields = [], destinations }) {
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  function fillDemoAccount(email, password) {
+    setForm((currentForm) => ({ ...currentForm, email, password }));
+    setError('');
+  }
+
   async function submit(event) {
     event.preventDefault();
     setError('');
     setBusy(true);
     try {
       if (registering)
-        await api.post(
-          '/auth/register',
+        await authApi.register(
           Object.fromEntries(registerFields.map((field) => [field.name, form[field.name]])),
         );
       const user = await auth.login(form.email, form.password);
@@ -50,6 +62,22 @@ export default function LoginPage({ registerFields = [], destinations }) {
         </p>
         {error && <Alert variant="danger">{error}</Alert>}
         <Form onSubmit={submit}>
+          {!registering && (
+            <div className="d-grid d-sm-flex gap-2 mb-3" role="group" aria-label="Demo accounts">
+              {demoAccounts.map(({ role, email, password }) => (
+                <Button
+                  key={role}
+                  type="button"
+                  variant="outline-secondary"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => fillDemoAccount(email, password)}
+                >
+                  Fill {role} login
+                </Button>
+              ))}
+            </div>
+          )}
           <FormFields
             fields={registering ? registerFields : loginFields}
             value={form}

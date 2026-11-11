@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Alert, Badge, Button, Card, Col, Form, Row, Spinner } from 'react-bootstrap';
-import api, { errorText, money } from './LuanLHCE191099_api.js';
-import { useAuth } from './LuanLHCE191099_Auth.jsx';
-import useApiList from './LuanLHCE191099_useApiList.js';
+import { errorText } from '../api/LuanLHCE191099_axiosClient.js';
+import { bookingApi } from '../api/LuanLHCE191099_bookingApi.js';
+import { roomApi } from '../api/LuanLHCE191099_roomApi.js';
+import { useAuth } from '../context/LuanLHCE191099_AuthContext.jsx';
+import useApiList from '../hooks/LuanLHCE191099_useApiList.js';
+import { money } from '../utils/LuanLHCE191099_money.js';
 function day(offset) {
   const date = new Date();
   date.setDate(date.getDate() + offset);
@@ -13,8 +16,12 @@ export default function PublicRooms() {
   const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [dates, setDates] = useState({ startDate: day(1), endDate: day(2) });
-  const [filterDates, setFilterDates] = useState('');
-  const rooms = useApiList(`/public/rooms?q=${encodeURIComponent(search)}${filterDates}`);
+  const [filterDates, setFilterDates] = useState({});
+  const loadRooms = useCallback(
+    (options) => roomApi.getPublic({ ...options, ...filterDates }),
+    [filterDates],
+  );
+  const rooms = useApiList(loadRooms, search);
   const [selectedIds, setSelectedIds] = useState([]);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -32,7 +39,7 @@ export default function PublicRooms() {
       setError('Check-out must be after check-in.');
       return;
     }
-    setFilterDates(`&startDate=${dates.startDate}&endDate=${dates.endDate}`);
+    setFilterDates(dates);
     setSelectedIds([]);
     rooms.reload();
   }
@@ -49,7 +56,7 @@ export default function PublicRooms() {
     }
     setBusy(true);
     try {
-      const { data } = await api.post('/bookings', {
+      const { data } = await bookingApi.create({
         ...dates,
         roomIds: selected.map((room) => room.id),
         status: 1,

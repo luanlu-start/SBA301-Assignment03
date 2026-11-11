@@ -55,7 +55,7 @@
             "exec": [
               "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
               "{",
-              "const assignmentResponse = pm.response.json();",
+              "const assignmentResponse = pm.response.json().data;",
               "pm.collectionVariables.set(\"roomTypeId\", assignmentResponse[0].id);",
               "}",
               ""
@@ -96,7 +96,7 @@
             "exec": [
               "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
               "{",
-              "const assignmentResponse = pm.response.json();",
+              "const assignmentResponse = pm.response.json().data;",
               "pm.collectionVariables.set(\"staffToken\", assignmentResponse.token);",
               "}",
               ""
@@ -137,7 +137,7 @@
             "exec": [
               "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
               "{",
-              "const assignmentResponse = pm.response.json();",
+              "const assignmentResponse = pm.response.json().data;",
               "pm.collectionVariables.set(\"customerId\", assignmentResponse.id);",
               "}",
               ""
@@ -178,7 +178,7 @@
             "exec": [
               "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
               "{",
-              "const assignmentResponse = pm.response.json();",
+              "const assignmentResponse = pm.response.json().data;",
               "pm.collectionVariables.set(\"customerToken\", assignmentResponse.token);",
               "}",
               ""
@@ -250,7 +250,7 @@
             "exec": [
               "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
               "{",
-              "const assignmentResponse = pm.response.json();",
+              "const assignmentResponse = pm.response.json().data;",
               "pm.collectionVariables.set(\"room1Id\", assignmentResponse.id);",
               "}",
               ""
@@ -295,7 +295,7 @@
             "exec": [
               "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
               "{",
-              "const assignmentResponse = pm.response.json();",
+              "const assignmentResponse = pm.response.json().data;",
               "pm.collectionVariables.set(\"room2Id\", assignmentResponse.id);",
               "}",
               ""
@@ -340,11 +340,11 @@
             "exec": [
               "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
               "{",
-              "const assignmentResponse = pm.response.json();",
+              "const assignmentResponse = pm.response.json().data;",
               "pm.collectionVariables.set(\"bookingId\", assignmentResponse.id);",
               "}",
               "",
-              "pm.test(\"Server total\", () => pm.expect(pm.response.json().totalPrice).to.eql(1000000));"
+              "pm.test(\"Server total\", () => pm.expect(pm.response.json().data.totalPrice).to.eql(1000000));"
             ]
           }
         }
@@ -466,7 +466,7 @@
             "type": "text/javascript",
             "exec": [
               "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
-              "pm.test(\"Room deactivated\", () => pm.expect(pm.response.json().deactivated).to.eql(true));"
+              "pm.test(\"Room deactivated\", () => pm.expect(pm.response.json().data.deactivated).to.eql(true));"
             ]
           }
         }
@@ -570,7 +570,7 @@
             "exec": [
               "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
               "{",
-              "const assignmentResponse = pm.response.json();",
+              "const assignmentResponse = pm.response.json().data;",
               "pm.collectionVariables.set(\"secondBookingId\", assignmentResponse.id);",
               "}",
               ""

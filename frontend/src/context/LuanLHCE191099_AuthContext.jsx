@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { Alert, Spinner } from 'react-bootstrap';
-import api, { expiredEvent, sessionKey } from './LuanLHCE191099_api.js';
+import { authApi } from '../api/LuanLHCE191099_authApi.js';
+import { expiredEvent, sessionKey } from '../api/LuanLHCE191099_axiosClient.js';
+
 const AuthContext = createContext(null);
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(() => Boolean(sessionStorage.getItem(sessionKey)));
@@ -11,8 +12,8 @@ export function AuthProvider({ children }) {
     const expire = () => setUser(null);
     window.addEventListener(expiredEvent, expire);
     if (sessionStorage.getItem(sessionKey)) {
-      api
-        .get('/auth/me')
+      authApi
+        .getCurrentUser()
         .then(({ data }) => {
           if (active) setUser(data);
         })
@@ -29,7 +30,7 @@ export function AuthProvider({ children }) {
     };
   }, []);
   async function login(email, password) {
-    const { data } = await api.post('/auth/login', { email, password });
+    const { data } = await authApi.login({ email, password });
     sessionStorage.setItem(sessionKey, data.token);
     setUser(data.user);
     return data.user;
@@ -39,7 +40,7 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
   async function refresh() {
-    const { data } = await api.get('/auth/me');
+    const { data } = await authApi.getCurrentUser();
     setUser(data);
   }
   return (
@@ -48,19 +49,7 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+
 export function useAuth() {
   return useContext(AuthContext);
-}
-export function RequireRole({ roles }) {
-  const { user, loading } = useAuth();
-  if (loading)
-    return (
-      <Spinner animation="border" role="status">
-        <span className="visually-hidden">Loading session</span>
-      </Spinner>
-    );
-  if (!user) return <Navigate to="/login" replace />;
-  if (!roles.includes(user.role))
-    return <Alert variant="warning">You do not have permission to open this page.</Alert>;
-  return <Outlet />;
 }
